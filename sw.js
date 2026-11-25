@@ -1,11 +1,15 @@
-/* milk PWA service worker - 预缓存全站资源，离线可用 */
-const CACHE = 'milk-pwa-v1';
+/* milk PWA service worker v6 - 预缓存全站资源（含 auto-backup / compress-image / addons / muse） */
+const CACHE = 'milk-pwa-v6';
 const ASSETS = [
   '.',
   'index.html',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',
+  'auto-backup.js',
+  'compress-image.js',
+  'addons.js',
+  'muse.js',
   'css/styles.css',
   'js/app.js',
   'js/backup-engine.js',
@@ -45,9 +49,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  if (url.origin !== location.origin) return; // 站外资源（字体/CDN）直接走网络
+  if (url.origin !== location.origin) return;
 
-  // 页面导航：优先网络，断网回退到缓存的首页
   if (e.request.mode === 'navigate') {
     e.respondWith(
       fetch(e.request).catch(() => caches.match('index.html'))
@@ -55,7 +58,6 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // 其他资源：缓存优先，未命中再抓网络并顺手存进缓存
   e.respondWith(
     caches.match(e.request).then((hit) =>
       hit ||
