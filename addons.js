@@ -28,6 +28,10 @@
     function hasPin() { try { return !!localStorage.getItem(PIN_KEY); } catch (e) { return false; } }
 
     function lockScreen() {
+        try {
+            var u = parseInt(sessionStorage.getItem('addon_unlock') || '0', 10);
+            if (u && (Date.now() - u) < 1800000) return;
+        } catch (e) {}
         injectCss('addon-pin-css',
             '#addon-lock{position:fixed;inset:0;z-index:' + Z + ';background:rgba(20,20,24,0.96);' +
             'display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;' +
@@ -100,6 +104,7 @@
             sha256(pinInput).then(function (h) {
                 if (mode === 'verify') {
                     if (h === localStorage.getItem(PIN_KEY)) {
+                        try { sessionStorage.setItem('addon_unlock', String(Date.now())); } catch (e) {}
                         document.body.style.overflow = '';
                         el.remove();
                     } else { fail('密码不对'); }
@@ -110,6 +115,7 @@
                 } else {
                     if (pinInput === first) {
                         localStorage.setItem(PIN_KEY, h);
+                        try { sessionStorage.setItem('addon_unlock', String(Date.now())); } catch (e) {}
                         document.body.style.overflow = '';
                         el.remove();
                         notify('密码已设置', 'success');

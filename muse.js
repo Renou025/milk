@@ -369,6 +369,7 @@
             injectViaStorage(currentText).then(function (r) {
                 if (r === 'ok-reload') {
                     try { localStorage.setItem('muse_flash', '1'); } catch (e) {}
+                    try { sessionStorage.setItem('muse_scroll', String(window.scrollY || 0)); } catch (e) {}
                     setTimeout(function () { location.reload(); }, 400);
                 } else {
                     setStatus(r);
@@ -384,6 +385,13 @@
             if (localStorage.getItem('muse_flash')) {
                 localStorage.removeItem('muse_flash');
                 setTimeout(function () { notify('\u4ED6\u53D1\u6765\u4E86', 'success', 3000); }, 1200);
+            }
+        } catch (e) {}
+        try {
+            var sy = parseInt(sessionStorage.getItem('muse_scroll') || '0', 10);
+            if (sy > 0) {
+                sessionStorage.removeItem('muse_scroll');
+                setTimeout(function () { window.scrollTo(0, sy); }, 900);
             }
         } catch (e) {}
         injectCss();
