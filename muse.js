@@ -40,10 +40,11 @@
     }
 
     function buildCorpus() {
+        try {
         chain = {};
         vocab = [];
         anchors = [];
-        if (!(window.ChatBackup && ChatBackup.buildBackupPayload)) return Promise.resolve(false);
+        if (!(window.ChatBackup && ChatBackup.buildBackupPayload)) return Promise.resolve({ ok: false, err: '\u5907\u4EFD\u5F15\u64CE\u672A\u52A0\u8F7D\uFF08ChatBackup\u7F3A\u5931\uFF09' });
         return ChatBackup.buildBackupPayload({
             inclMsgs: true, inclSet: false, inclCustom: false,
             inclAnn: false, inclThemes: false, inclDg: false, inclStickers: false
@@ -63,8 +64,9 @@
                     Array.from(t).forEach(function (c) { if (vocab.indexOf(c) === -1) vocab.push(c); });
                 });
             });
-            return Object.keys(chain).length > 5;
-        }).catch(function () { return false; });
+            return { ok: Object.keys(chain).length > 5, err: '\u8BED\u6599\u4E0D\u8DB3' };
+        }).catch(function (e) { return { ok: false, err: e && e.message ? e.message : '\u672A\u77E5\u9519\u8BEF' } });
+        } catch (e) { return Promise.resolve({ ok: false, err: e.message }); }
     }
 
     /* ============ 生成：暗骰火候 + 锚点 + 接龙 ============ */
@@ -222,6 +224,10 @@
         document.body.appendChild(panel);
         museLayout();
         panel.querySelector('#museX').onclick = function () { panel.remove(); panel = null; };
+        try {
+            setStatus('\u73AF\u5883\u68C0\u6D4B\uFF1A\u5907\u4EFD\u5F15\u64CE ' + (window.ChatBackup ? '\u2713' : '\u00D7') + ' / \u8BED\u6599 ' + (chain ? Object.keys(chain).length + '\u5B57' : '\u672A\u94F8'));
+            setTimeout(function () { if (!busy) setStatus(''); }, 5000);
+        } catch (e) {}
         panel.querySelector('#museGen').onclick = onGenerate;
         panel.querySelector('#museUse').onclick = onUse;
         panel.querySelector('#museSend').onclick = onSend;
@@ -231,46 +237,56 @@
     var busy = false;
 
     function statusEl() { return panel ? panel.querySelector('#muse-status') : null; }
+    function setStatus(t) { var s = statusEl(); if (s) s.textContent = t || ''; }
     function outEl() { return panel ? panel.querySelector('#muse-out') : null; }
 
     function onGenerate() {
         if (busy) return;
         busy = true;
-        currentText = '';
-        var st = statusEl(), out = outEl();
-        out.textContent = '';
-        st.textContent = '\u6B63\u5728\u8F93\u5165\u2026';
+        try {
+            currentText = '';
+            var out = outEl();
+            out.textContent = '';
+            setStatus('\u6B63\u5728\u8F93\u5165\u2026');
 
-        var run = function () {
-            var r = generate();
-            if (!r) {
-                st.textContent = '\u8BED\u6599\u4E0D\u591F\uFF0C\u591A\u804A\u51E0\u53E5\u518D\u6765';
-                busy = false;
-                return;
-            }
-            setTimeout(function () {
-                st.textContent = '';
-                typeInto(out, r.text, function () {
-                    currentText = r.text;
-                    busy = false;
-                    if (!localStorage.getItem(LS_SEEN)) {
-                        localStorage.setItem(LS_SEEN, '1');
-                        notify('\u901A\u987A\u5F52\u4ED6\uFF0C\u4E71\u7B7E\u5F52\u7B52', 'info', 3500);
-                    }
-                });
-            }, 600 + rnd(1200));
-        };
+            var fail = function (msg) { setStatus(msg); busy = false; };
 
-        if (!chain) {
-            st.textContent = '\u9996\u6B21\u4F7F\u7528\uFF0C\u6B63\u5728\u94F8\u5B57\u2026';
-            buildCorpus().then(function (ok) {
-                if (!ok) st.textContent = '\u8BED\u6599\u4E0D\u591F\uFF1A\u9700\u8981\u5148\u6709\u804A\u5929\u8BB0\u5F55\uFF08\u81F3\u5C11\u51E0\u53E5\u6587\u5B57\u6D88\u606F\uFF09';
-                else run();
-            });
-        } else run();
+            var run = function () {
+                try {
+                    var r = generate();
+                    if (!r) { fail('\u8BED\u6599\u4E0D\u591F\uFF0C\u591A\u804A\u51E0\u53E5\u518D\u6765'); return; }
+                    setTimeout(function () {
+                        try {
+                            setStatus('');
+                            typeInto(out, r.text, function () {
+                                currentText = r.text;
+                                busy = false;
+                                try {
+                                    if (!localStorage.getItem(LS_SEEN)) {
+                                        localStorage.setItem(LS_SEEN, '1');
+                                        notify('\u901A\u987A\u5F52\u4ED6\uFF0C\u4E71\u7B7E\u5F52\u7B52', 'info', 3500);
+                                    }
+                                } catch (e) {}
+                            });
+                        } catch (e) { fail('\u6253\u5B57\u51FA\u9519\uFF1A' + e.message); }
+                    }, 600 + rnd(1200));
+                } catch (e) { fail('\u751F\u6210\u51FA\u9519\uFF1A' + e.message); }
+            };
+
+            if (!chain) {
+                setStatus('\u9996\u6B21\u4F7F\u7528\uFF0C\u6B63\u5728\u94F8\u5B57\u2026');
+                try {
+                    buildCorpus().then(function (res) {
+                        if (!res || !res.ok) fail('\u8BED\u6599\u4E0D\u591F\uFF1A' + ((res && res.err) || '\u9700\u81F3\u5C11\u51E0\u53E5\u6587\u5B57\u804A\u5929\u8BB0\u5F55'));
+                        else run();
+                    }).catch(function (e) { fail('\u8BED\u6599\u8BFB\u53D6\u5931\u8D25\uFF1A' + e.message); });
+                } catch (e) { fail('\u8BED\u6599\u8BFB\u53D6\u5F02\u5E38\uFF1A' + e.message); }
+            } else run();
+        } catch (e) { setStatus('\u51FA\u9519\uFF1A' + e.message); busy = false; }
     }
 
     function onUse() {
+        try {
         if (!currentText) { notify('\u5148\u6447\u4E00\u7B7E', 'info'); return; }
         var input = document.getElementById('message-input');
         if (!input) { notify('\u627E\u4E0D\u5230\u8F93\u5165\u6846', 'error'); return; }
@@ -278,15 +294,18 @@
         try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
         input.focus();
         notify('\u5DF2\u586B\u5165\u8F93\u5165\u6846\uFF0C\u786E\u8BA4\u540E\u53D1\u51FA', 'success');
+        } catch (e) { notify('\u91C7\u7528\u51FA\u9519\uFF1A' + e.message, 'error', 4000); }
     }
 
     function onSend() {
+        try {
         if (!currentText) { notify('\u5148\u6447\u4E00\u7B7E', 'info'); return; }
         if (injectAsPartner(currentText)) {
             notify('\u4ED6\u53D1\u6765\u4E86', 'success');
         } else {
             notify('\u63A5\u5165\u804A\u5929\u5931\u8D25\uFF0C\u6539\u7528\u201C\u91C7\u7528\u201D\u624B\u52A8\u53D1', 'warning', 3500);
         }
+        } catch (e) { notify('\u53D1\u51FA\u51FA\u9519\uFF1A' + e.message, 'error', 4000); }
     }
 
 
