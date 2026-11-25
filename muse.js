@@ -141,19 +141,20 @@
     /* ============ 以他的身份发出 ============ */
     function injectAsPartner(text) {
         var msgs = window.messages;
-        if (!Array.isArray(msgs) || typeof renderMessages !== 'function') return false;
+        if (!Array.isArray(msgs)) return '失败：window.messages 不存在';
+        if (typeof renderMessages !== 'function') return '失败：renderMessages 不存在';
         var template = null;
         for (var i = msgs.length - 1; i >= 0; i--) {
-            var m = msgs[i];
-            var isPartner = (m.sender === 'partner' || m.type === 'received' || m.isSent === false || (m.sender !== 'me' && m.isSent !== true && m.text));
-            if (isPartner && !m.image) { template = m; break; }
+            var mm = msgs[i];
+            var isPartner = (mm.sender === 'partner' || mm.type === 'received' || mm.isSent === false || mm.fromMe === false || (mm.sender && mm.sender !== 'me' && mm.isSent !== true && mm.text));
+            if (isPartner && !mm.image && (mm.text || mm.content)) { template = mm; break; }
         }
-        if (!template) {   // 兜底：任意一条纯文字消息
+        if (!template) {
             for (var j = msgs.length - 1; j >= 0; j--) {
-                if (msgs[j].text && !msgs[j].image) { template = msgs[j]; break; }
+                if ((msgs[j].text || msgs[j].content) && !msgs[j].image) { template = msgs[j]; break; }
             }
         }
-        if (!template) return false;
+        if (!template) return '失败：找不到可克隆的消息（记录里还没有文字消息）';
         try {
             var nm = JSON.parse(JSON.stringify(template));
             nm.text = text;
@@ -161,14 +162,17 @@
             nm.timestamp = new Date();
             if ('id' in nm) nm.id = 'muse_' + Date.now();
             if ('time' in nm) nm.time = nm.timestamp;
+            if ('status' in nm) nm.status = 'sent';
             msgs.push(nm);
             renderMessages();
             try { if (typeof throttledSaveData === 'function') throttledSaveData(); else if (typeof saveData === 'function') saveData(); } catch (e) {}
             try { if (typeof playSound === 'function') playSound('message'); } catch (e) {}
             var c = document.getElementById('chat-container');
             if (c) c.scrollTop = c.scrollHeight;
-            return true;
-        } catch (e) { return false; }
+            return 'ok';
+        } catch (e) {
+            return '失败：渲染出错 ' + (e && e.message) + '｜字段:' + Object.keys(template).join(',');
+        }
     }
 
     /* ============ 界面 ============ */
@@ -300,10 +304,11 @@
     function onSend() {
         try {
         if (!currentText) { notify('\u5148\u6447\u4E00\u7B7E', 'info'); return; }
-        if (injectAsPartner(currentText)) {
+        var r = injectAsPartner(currentText);
+        if (r === 'ok') {
             notify('\u4ED6\u53D1\u6765\u4E86', 'success');
         } else {
-            notify('\u63A5\u5165\u804A\u5929\u5931\u8D25\uFF0C\u6539\u7528\u201C\u91C7\u7528\u201D\u624B\u52A8\u53D1', 'warning', 3500);
+            notify(r, 'warning', 6000);
         }
         } catch (e) { notify('\u53D1\u51FA\u51FA\u9519\uFF1A' + e.message, 'error', 4000); }
     }
