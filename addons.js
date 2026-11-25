@@ -139,7 +139,7 @@
 
     function storagePanel() {
         injectCss('addon-store-css',
-            '#addon-chip{position:fixed;left:10px;bottom:14px;z-index:' + (Z - 2) + ';' +
+            '#addon-chip{position:fixed;left:10px;top:0;z-index:' + (Z - 2) + ';' +
             'background:rgba(30,30,34,0.85);color:#fff;font-size:11px;padding:6px 10px;' +
             'border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,0.15);' +
             'font-family:var(--font-family,system-ui,sans-serif);}' +
@@ -174,6 +174,7 @@
                 '<button class="ap-b" id="apTxt">导出聊天记录TXT</button>' +
                 '<button class="ap-g" id="apClose">收起</button>';
             document.body.appendChild(p);
+            addonLayout();
             p.querySelector('#apBackup').onclick = function () {
                 if (window.ChatBackup) ChatBackup.exportBackupToFile().catch(function () {});
                 else notify('备份引擎未就绪', 'warning');
@@ -338,13 +339,15 @@
 
     /* ================= 启动 ================= */
     window.addEventListener('load', function () {
-        setTimeout(function () {
+        addonLayout();
+            setInterval(addonLayout, 3000);
+            setTimeout(function () {
             lockScreen();
             storagePanel();
             refreshEstimate();
             setInterval(refreshEstimate, 30000);
             injectCss('addon-fab-css',
-                '#addon-searchBtn{position:fixed;right:12px;bottom:14px;z-index:' + (Z - 2) + ';' +
+                '#addon-searchBtn{position:fixed;right:12px;top:0;z-index:' + (Z - 2) + ';' +
                 'width:38px;height:38px;border-radius:50%;background:rgba(30,30,34,0.85);color:#fff;' +
                 'border:1px solid rgba(255,255,255,0.15);font-size:16px;cursor:pointer;}');
             var sb = document.createElement('button');

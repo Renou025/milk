@@ -174,10 +174,10 @@
     function injectCss() {
         var s = document.createElement('style');
         s.textContent =
-            '#muse-btn{position:fixed;right:60px;bottom:14px;z-index:' + (Z - 3) + ';width:38px;height:38px;' +
+            '#muse-btn{position:fixed;right:60px;top:0;z-index:' + (Z - 3) + ';width:38px;height:38px;' +
             'border-radius:50%;background:rgba(30,30,34,0.85);color:#fff;border:1px solid rgba(255,255,255,0.15);' +
             'font-size:15px;cursor:pointer;font-family:var(--font-family,serif);}' +
-            '#muse-panel{position:fixed;left:12px;right:12px;bottom:62px;z-index:' + (Z - 1) + ';' +
+            '#muse-panel{position:fixed;left:12px;right:12px;top:0;z-index:' + (Z - 1) + ';' +
             'background:rgba(28,28,32,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;' +
             'padding:14px;color:#fff;font-family:var(--font-family,serif);box-shadow:0 10px 40px rgba(0,0,0,0.4);}' +
             '#muse-panel .mp-title{font-size:13px;font-weight:700;opacity:0.85;margin-bottom:10px;letter-spacing:2px;}' +
@@ -220,6 +220,7 @@
             '<button class="mp-x" id="museX">\u2715</button>' +
             '</div>';
         document.body.appendChild(panel);
+        museLayout();
         panel.querySelector('#museX').onclick = function () { panel.remove(); panel = null; };
         panel.querySelector('#museGen').onclick = onGenerate;
         panel.querySelector('#museUse').onclick = onUse;
@@ -288,9 +289,23 @@
         }
     }
 
+
+    function museLayout() {
+        var inp = document.getElementById('message-input');
+        var base = inp ? inp.getBoundingClientRect().top : window.innerHeight - 130;
+        var b = document.getElementById('muse-btn');
+        if (b) b.style.top = (base - 48) + 'px';
+        var p = document.getElementById('muse-panel');
+        if (p) p.style.top = Math.max(8, base - p.offsetHeight - 56) + 'px';
+    }
+    window.addEventListener('resize', function () { setTimeout(museLayout, 200); });
+
     /* ============ 启动 ============ */
     window.addEventListener('load', function () {
         injectCss();
+        museLayout();
+        setInterval(museLayout, 3000);
         setTimeout(ensureBtn, 2500);
+        setTimeout(museLayout, 3000);
     });
 })();
