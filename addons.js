@@ -337,6 +337,23 @@
         searchIdx = -1;
     }
 
+    
+    /* 动态布局：悬浮件悬在输入框上方 */
+    function addonLayout() {
+        try {
+            var inp = document.getElementById('message-input');
+            var base = inp ? inp.getBoundingClientRect().top : window.innerHeight - 130;
+            if (!base || base < 100) return;
+            var chip = document.getElementById('addon-chip');
+            if (chip) chip.style.top = (base - 48) + 'px';
+            var sb = document.getElementById('addon-searchBtn');
+            if (sb) sb.style.top = (base - 48) + 'px';
+            var p = document.getElementById('addon-panel');
+            if (p) p.style.top = Math.max(8, base - p.offsetHeight - 56) + 'px';
+        } catch (e) {}
+    }
+    window.addEventListener('resize', function () { setTimeout(addonLayout, 200); });
+
     /* ================= 启动 ================= */
     window.addEventListener('load', function () {
         addonLayout();
