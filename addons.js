@@ -213,11 +213,10 @@
         return String(v);
     }
     function msgWho(m) {
-        var t = (m && (m.type || m.sender || m.side)) || '';
-        t = String(t).toLowerCase();
-        if (m && (m.isSent === true || m.fromMe === true)) return '我';
-        if (['sent', 'me', 'my', 'self', 'mine'].indexOf(t) !== -1) return '我';
-        if (m && (m.isSent === false || m.fromMe === false)) return '梦角';
+        if (!m || typeof m !== 'object') return '梦角';
+        if (m.sender === 'user') return '方辜微';
+        if (typeof m.sender === 'string' && m.sender && m.sender !== 'partner') return m.sender;
+        if (m.isSent === true || m.fromMe === true) return '方辜微';
         return '梦角';
     }
 
@@ -242,7 +241,7 @@
                 var lines = [];
                 list.forEach(function (m) {
                     var txt = msgText(m);
-                    if (!txt && m && typeof m === 'object' && m.__mRef) txt = '[图片]';
+                    if (!txt && m && typeof m === 'object' && (m.__mRef || m.image)) txt = '[图片]';
                     txt = txt.replace(/\{[^{}]*__mRef[^{}]*\}/g, '[图片]');
                     if (!txt.trim()) return;
                     lines.push('【' + fmtTime(m && (m.timestamp || m.time || m.date)) + '】' + msgWho(m) + '：' + txt);
