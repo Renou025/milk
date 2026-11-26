@@ -206,7 +206,7 @@
                 if ('isSent' in nm) nm.isSent = false;
                 if ('fromMe' in nm) nm.fromMe = false;
                 if ('isMe' in nm) nm.isMe = false;
-                if ('id' in nm) nm.id = 'muse_' + Date.now();
+                if ('id' in nm) nm.id = Date.now();
                 if ('status' in nm) nm.status = 'sent';
                 arr.push(nm);
                 return localforage.setItem(key, arr).then(function () { return 'ok-reload'; });
@@ -249,12 +249,63 @@
             var base = inp ? inp.getBoundingClientRect().top : window.innerHeight - 130;
             if (!base || base < 100) return;
             var b = document.getElementById('muse-btn');
-            if (b) b.style.top = (base - 48) + 'px';
+            if (b && !hasSavedPos('muse_btn_pos')) b.style.top = (base - 48) + 'px';
             var p = document.getElementById('muse-panel');
             if (p) p.style.top = Math.max(8, base - p.offsetHeight - 56) + 'px';
         } catch (e) {}
     }
     window.addEventListener('resize', function () { setTimeout(museLayout, 200); });
+
+    function makeDraggable(el, lsKey) {
+        if (!el) return;
+        var sx = null, sy = null, ox = 0, oy = 0, moved = false;
+        el.addEventListener('pointerdown', function (e) {
+            try {
+                var r = el.getBoundingClientRect();
+                sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top; moved = false;
+                el.setPointerCapture(e.pointerId);
+            } catch (err) {}
+        });
+        el.addEventListener('pointermove', function (e) {
+            if (sx === null) return;
+            var dx = e.clientX - sx, dy = e.clientY - sy;
+            if (!moved && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+            moved = true;
+            var w = el.offsetWidth, h = el.offsetHeight;
+            var nx = Math.max(0, Math.min(window.innerWidth - w, ox + dx));
+            var ny = Math.max(0, Math.min(window.innerHeight - h, oy + dy));
+            el.style.left = nx + 'px';
+            el.style.top = ny + 'px';
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+        });
+        el.addEventListener('pointerup', function () {
+            if (sx === null) return;
+            sx = null;
+            if (moved) {
+                try { localStorage.setItem(lsKey, JSON.stringify({ left: el.offsetLeft, top: el.offsetTop })); } catch (err) {}
+                var kill = function (ev) { ev.stopPropagation(); ev.preventDefault(); };
+                el.addEventListener('click', kill, true);
+                setTimeout(function () { el.removeEventListener('click', kill, true); }, 400);
+            }
+        });
+        el.addEventListener('pointercancel', function () { sx = null; });
+    }
+    function applySavedPos(el, lsKey) {
+        if (!el) return;
+        try {
+            var p = JSON.parse(localStorage.getItem(lsKey) || 'null');
+            if (p) {
+                el.style.left = p.left + 'px';
+                el.style.top = p.top + 'px';
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
+            }
+        } catch (err) {}
+    }
+    function hasSavedPos(lsKey) {
+        try { return !!localStorage.getItem(lsKey); } catch (err) { return false; }
+    }
 
     function renderSpeakers() {
         var box = panel && panel.querySelector('#muse-spk');
@@ -268,7 +319,7 @@
         spkState.vals.forEach(function (v) {
             var c = document.createElement('span');
             c.className = 'spk' + (v === spkState.selected ? ' on' : '');
-            c.textContent = v;
+            c.textContent = (v === 'user' || v === 'me') ? '\u6211' : (v === 'partner' ? 'TA' : v);
             c.onclick = function () {
                 spkState.selected = v;
                 try { localStorage.setItem(LS_SPK + corpusKey, v); } catch (e) {}
@@ -404,6 +455,8 @@
                 b.textContent = '\u7075';
                 b.title = '\u6D3B\u5B57\u7EC4\u5B57';
                 b.onclick = toggle;
+                applySavedPos(b, 'muse_btn_pos');
+                makeDraggable(b, 'muse_btn_pos');
                 document.body.appendChild(b);
                 museLayout();
             }

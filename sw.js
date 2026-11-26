@@ -1,5 +1,5 @@
-/* milk PWA service worker v15 - 预缓存全站资源（含 auto-backup / compress-image / addons / muse） */
-const CACHE = 'milk-pwa-v15';
+/* milk PWA service worker v17 - 预缓存全站资源（含 auto-backup / compress-image / addons / muse） */
+const CACHE = 'milk-pwa-v17';
 const ASSETS = [
   '.',
   'index.html',
